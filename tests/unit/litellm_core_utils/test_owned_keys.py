@@ -13,10 +13,9 @@ def test_top_level_owned_key_is_flagged() -> None:
     assert owned_keys_in(body) == ("model_info",)
 
 
-def test_prefixed_key_is_flagged() -> None:
-    body: Final = {"model": "gpt-5.4", "_litellm_probe": 1}
-
-    assert owned_keys_in(body) == ("_litellm_probe",)
+@pytest.mark.parametrize("key", ("_litellm_probe", "_litellm_zzz"))
+def test_prefixed_key_is_flagged(key: str) -> None:
+    assert owned_keys_in({"model": "gpt-5.4", key: 1}) == (key,)
 
 
 @pytest.mark.parametrize(

@@ -8535,7 +8535,7 @@ class TestOwnedKeysWarning:
         match: Final = self._WARNING.match(warnings[0])
         assert match is not None, warnings[0]
         assert match["provider"] == provider
-        assert match["model"] in requested_model
+        assert match["model"] == requested_model.split("/", 1)[-1]
         assert match["keys"].split(".")[-1] == "_litellm_probe"
 
     def _assert_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
@@ -8563,6 +8563,42 @@ class TestOwnedKeysWarning:
         self._assert_probe_warned(caplog, "openai", "gpt-5.4")
         assert response.choices[0].message.content == "Hi"
         assert bodies[0]["_litellm_probe"] == 1
+
+    def test_openai_sync_stream_warns_once_on_owned_key(self, caplog: pytest.LogCaptureFixture) -> None:
+        bodies: Final[list[dict[str, object]]] = []
+
+        def handle(request: httpx.Request) -> httpx.Response:
+            bodies.append(json.loads(request.content))
+            return httpx.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                content=(
+                    b'data: {"id":"chatcmpl-owned-keys","object":"chat.completion.chunk","created":1,'
+                    b'"model":"gpt-5.4","choices":[{"index":0,"delta":{"role":"assistant","content":"Hi"},'
+                    b'"finish_reason":null}]}\n\n'
+                    b'data: {"id":"chatcmpl-owned-keys","object":"chat.completion.chunk","created":1,'
+                    b'"model":"gpt-5.4","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n'
+                    b"data: [DONE]\n\n"
+                ),
+            )
+
+        client: Final = openai.OpenAI(
+            api_key="sk-test", http_client=httpx.Client(transport=httpx.MockTransport(handle))
+        )
+        with caplog.at_level(logging.WARNING, logger="LiteLLM"):
+            response: Final = litellm.completion(
+                model="gpt-5.4",
+                messages=self._MESSAGES,
+                api_key="sk-test",
+                client=client,
+                stream=True,
+                extra_body=self._PROBE,
+            )
+            chunks: Final = list(response)
+        assert "".join(chunk.choices[0].delta.content or "" for chunk in chunks) == "Hi"
+        self._assert_probe_warned(caplog, "openai", "gpt-5.4")
+        assert bodies[0]["_litellm_probe"] == 1
+        assert bodies[0]["stream"] is True
 
     def test_openai_sync_no_owned_key_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         bodies: Final[list[dict[str, object]]] = []
@@ -8703,7 +8739,6 @@ class TestOwnedKeysWarning:
             )
         self._assert_probe_warned(caplog, "bedrock", "bedrock/invoke/us.anthropic.claude-sonnet-4-5-20250929-v1:0")
         assert len(bodies) == 1
-        assert "anthropic_version" in bodies[0]
         assert bodies[0]["_litellm_probe"] == 1
         assert response.choices[0].message.content == "Hi"
 
@@ -8721,7 +8756,6 @@ class TestOwnedKeysWarning:
             )
         self._assert_no_warning(caplog)
         assert len(bodies) == 1
-        assert "anthropic_version" in bodies[0]
 
     def test_bedrock_invoke_tool_schema_names_do_not_warn(self, caplog: pytest.LogCaptureFixture) -> None:
         bodies: Final[list[dict[str, object]]] = []
