@@ -1840,6 +1840,12 @@
     "tests/integration/spend/test_daily_rollup_retry.py::test_failed_daily_user_rollup_commit_is_retried_so_spend_report_and_daily_activity_agree": [
       "spend.daily_rollup.failed_user_commit_is_retried_until_report_and_daily_activity_agree"
     ],
+    "tests/integration/spend/test_daily_tag_spend_retention.py::test_daily_tag_spend_retention_prunes_only_rows_older_than_the_period": [
+      "spend.daily_tag_spend.retention_prunes_rows_older_than_the_period_and_keeps_the_rest"
+    ],
+    "tests/integration/spend/test_daily_tag_spend_retention.py::test_daily_tag_spend_is_kept_forever_when_its_retention_is_unset": [
+      "spend.daily_tag_spend.unset_retention_never_deletes_even_while_spend_logs_are_pruned"
+    ],
     "tests/integration/spend/test_disconnected_bedrock_messages_stream_billing.py::test_client_disconnect_mid_bedrock_messages_stream_still_bills_terminal_usage": [
       "spend.anthropic_messages_stream.client_disconnect_bills_terminal_bedrock_usage"
     ],
