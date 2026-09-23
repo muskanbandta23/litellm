@@ -8633,6 +8633,20 @@ class TestOwnedKeysWarning:
             litellm.completion(model="gpt-5.4", messages=self._MESSAGES, api_key="sk-test", client=client)
         self._assert_no_warning(caplog)
 
+    @pytest.mark.parametrize("body", ('{"user_api_key_hash": "h"}', b"user_api_key_hash", None))
+    def test_pre_call_body_that_is_not_a_mapping_stays_silent(
+        self, logging_obj: LitellmLogging, caplog: pytest.LogCaptureFixture, body: object
+    ) -> None:
+        logging_obj.update_environment_variables(litellm_params={}, optional_params={})
+        with caplog.at_level(logging.WARNING, logger="LiteLLM"):
+            logging_obj.pre_call(
+                input="",
+                api_key="",
+                additional_args={"complete_input_dict": body, "api_base": "https://x.test/v1", "headers": {}},
+            )
+        assert [record.getMessage() for record in caplog.records if record.levelno >= logging.WARNING] == []
+        assert logging_obj.model_call_details["litellm_params"]["api_base"] == "https://x.test/v1"
+
     def test_openai_sync_tool_schema_names_do_not_warn(self, caplog: pytest.LogCaptureFixture) -> None:
         bodies: Final[list[dict[str, object]]] = []
         client: Final = self._openai_client(bodies)
