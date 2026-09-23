@@ -2039,6 +2039,54 @@
     ],
     "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_batch_file_upload_keeps_team_alias_prefix": [
       "other.observability.s3_v2.batch_file_upload_keeps_team_prefix_in_object_key"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_upstream_failure_events_land_alongside_successes": [
+      "other.observability.s3_v2.upstream_failure_events_land_alongside_successes"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_invalid_or_empty_bound_falls_back_to_sixteen[non_integer]": [
+      "other.observability.s3_v2.invalid_or_empty_bound_falls_back_to_sixteen"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_invalid_or_empty_bound_falls_back_to_sixteen[below_one]": [
+      "other.observability.s3_v2.invalid_or_empty_bound_falls_back_to_sixteen"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_invalid_or_empty_bound_falls_back_to_sixteen[empty]": [
+      "other.observability.s3_v2.invalid_or_empty_bound_falls_back_to_sixteen"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_sink_rejection_requeues_and_delivers_every_id_once": [
+      "other.observability.s3_v2.sink_rejection_requeues_and_delivers_every_id_once"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_batch_retry_resends_identical_key_and_body": [
+      "other.observability.s3_v2.batch_retry_resends_identical_key_and_body"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_unknown_model_rejection_keeps_other_requests_logging": [
+      "other.observability.s3_v2.unknown_model_rejection_keeps_other_requests_logging"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_batch_flag_ignored_when_s3_v2_is_cold_storage_logger": [
+      "other.observability.s3_v2.batch_flag_ignored_when_s3_v2_is_cold_storage_logger"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_identical_requests_land_distinct_objects": [
+      "other.observability.s3_v2.identical_requests_land_distinct_objects"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_two_workers_bound_and_deliver_every_id": [
+      "other.observability.s3_v2.two_workers_bound_and_deliver_every_id"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_slow_sink_never_duplicates_or_stalls_readiness": [
+      "other.observability.s3_v2.slow_sink_never_duplicates_or_stalls_readiness"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_worker_kill_mid_burst_keeps_surviving_deliveries": [
+      "other.observability.s3_v2.worker_kill_mid_burst_keeps_surviving_deliveries"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_sigterm_mid_burst_loses_only_inflight_without_duplicates": [
+      "other.observability.s3_v2.sigterm_mid_burst_loses_only_inflight_without_duplicates"
+    ],
+    "tests/integration/observability/test_s3_v2_flush_surfaces.py::test_s3_v2_mixed_surface_burst_bounds_puts_one_object_per_response_id": [
+      "other.observability.s3_v2.mixed_surface_burst_bounds_puts_one_object_per_response_id"
+    ],
+    "tests/integration/observability/test_s3_v2_flush_surfaces.py::test_s3_v2_mixed_surface_batch_writes_ndjson_lines_per_response_id": [
+      "other.observability.s3_v2.mixed_surface_batch_writes_ndjson_lines_per_response_id"
+    ],
+    "tests/integration/observability/test_s3_v2_flush_surfaces.py::test_s3_v2_sink_outage_mid_mixed_burst_recovers_every_response_id": [
+      "other.observability.s3_v2.sink_outage_mid_mixed_burst_recovers_every_response_id"
     ]
   },
   "browser": {
