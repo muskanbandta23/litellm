@@ -2096,6 +2096,12 @@
       "mgmt.key.reset_spend.returns_promptly_with_wedged_coordination_redis",
       "mgmt.auth_cache_invalidation.publish_parked_by_short_redis_wedge_lands_after_recovery",
       "mgmt.auth_cache_invalidation.burst_with_worker_kill_keeps_serving_while_redis_wedged"
+    ],
+    "tests/integration/configuration/test_settings_write_atomicity.py::test_refused_patch_leaves_serving_value": [
+      "configuration.settings_write.refused_patch_leaves_serving_value"
+    ],
+    "tests/integration/configuration/test_settings_write_atomicity.py::test_db_general_settings_row_cannot_rebind_role_permissions": [
+      "configuration.settings_write.db_general_settings_row_cannot_rebind_role_permissions"
     ]
   },
   "browser": {
