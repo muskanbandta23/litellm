@@ -2036,6 +2036,9 @@
     ],
     "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_batch_file_upload_writes_one_jsonl_object_per_flush": [
       "other.observability.s3_v2.batch_file_upload_writes_one_ndjson_object_per_flush"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_batch_file_upload_keeps_team_alias_prefix": [
+      "other.observability.s3_v2.batch_file_upload_keeps_team_prefix_in_object_key"
     ]
   },
   "browser": {
