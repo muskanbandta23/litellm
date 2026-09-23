@@ -2102,6 +2102,18 @@
       "mgmt.key.reset_spend.returns_promptly_with_wedged_coordination_redis",
       "mgmt.auth_cache_invalidation.publish_parked_by_short_redis_wedge_lands_after_recovery",
       "mgmt.auth_cache_invalidation.burst_with_worker_kill_keeps_serving_while_redis_wedged"
+    ],
+    "tests/integration/spend/test_daily_tag_spend_retention.py::test_config_update_turns_on_daily_tag_spend_cleanup_without_a_restart": [
+      "spend.daily_tag_spend.runtime_config_update_enables_cleanup_on_a_multi_worker_proxy"
+    ],
+    "tests/integration/spend/test_daily_tag_spend_retention.py::test_unparseable_daily_tag_spend_retention_deletes_nothing_and_keeps_serving": [
+      "spend.daily_tag_spend.invalid_retention_value_keeps_rows_and_leaves_the_proxy_serving"
+    ],
+    "tests/integration/spend/test_daily_tag_spend_retention.py::test_daily_tag_spend_keeps_days_the_shorter_spend_log_horizon_already_pruned": [
+      "spend.daily_tag_spend.retention_horizon_is_independent_of_the_spend_log_horizon"
+    ],
+    "tests/integration/spend/test_daily_tag_spend_retention.py::test_daily_tag_spend_cleanup_completes_after_one_of_two_workers_is_killed": [
+      "spend.daily_tag_spend.cleanup_and_serving_survive_losing_one_of_two_workers"
     ]
   },
   "browser": {
