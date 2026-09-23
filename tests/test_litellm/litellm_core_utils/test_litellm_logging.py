@@ -8762,28 +8762,19 @@ class TestOwnedKeysWarning:
         assert isinstance(extra_body, dict)
         assert extra_body["_litellm_probe"] == 1
 
-    def test_bedrock_converse_pre_call_warns_once_when_owned_key_is_top_level(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
-        model: Final = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-        converse_body: Final = litellm.AmazonConverseConfig()._transform_request(
-            model=model, messages=list(self._MESSAGES), optional_params={}, litellm_params={}
-        )
-        logging_obj: Final = LitellmLogging(
-            model=model,
-            messages=list(self._MESSAGES),
-            stream=False,
-            call_type="completion",
-            start_time=time.time(),
-            litellm_call_id="owned-keys-converse",
-            function_id="owned-keys-converse",
-        )
-        logging_obj.update_environment_variables(litellm_params={}, optional_params={}, custom_llm_provider="bedrock")
+    def test_bedrock_converse_warns_on_owned_top_level_kwarg(self, caplog: pytest.LogCaptureFixture) -> None:
+        bodies: Final[list[dict[str, object]]] = []
+        client: Final = self._bedrock_handler(bodies, self._BEDROCK_CONVERSE_RESPONSE)
+        model: Final = "bedrock/converse/us.anthropic.claude-sonnet-4-5-20250929-v1:0"
         with caplog.at_level(logging.WARNING, logger="LiteLLM"):
-            logging_obj.pre_call(
-                input=self._MESSAGES,
-                api_key="",
-                additional_args={"complete_input_dict": {**converse_body, **self._PROBE}},
+            litellm.completion(
+                model=model,
+                messages=self._MESSAGES,
+                aws_access_key_id="test",
+                aws_secret_access_key="test",
+                aws_region_name="us-west-2",
+                client=client,
+                _litellm_probe=1,
             )
         self._assert_probe_warned(caplog, "bedrock", model)
-        assert "messages" in converse_body and "inferenceConfig" in converse_body
+        assert len(bodies) == 1

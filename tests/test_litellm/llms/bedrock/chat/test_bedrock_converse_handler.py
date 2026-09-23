@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import binascii
 import json
+import logging
 import struct
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
@@ -380,3 +381,26 @@ async def test_converse_async_stream_pre_call_body_is_the_mapping_sent_on_the_wi
     chunks: Final = [chunk async for chunk in stream]
     assert "".join(chunk.choices[0].delta.content or "" for chunk in chunks) == "hi"
     _assert_pre_call_body_is_the_wire_body(recorder, wire)
+
+
+def test_converse_top_level_owned_kwarg_folds_into_additional_fields_and_warns_once(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    wire: Final[list[dict[str, object]]] = []
+    client: Final = HTTPHandler(
+        client=httpx.Client(transport=_recording_transport(wire, httpx.Response(200, json=CONVERSE_RESPONSE)))
+    )
+    with caplog.at_level(logging.WARNING, logger="LiteLLM"):
+        litellm.completion(
+            model=_CONVERSE_MODEL, messages=_MESSAGES, client=client, _litellm_probe=1, **_AWS_TEST_KWARGS
+        )
+    warnings: Final = [
+        record.getMessage()
+        for record in caplog.records
+        if record.levelno == logging.WARNING and record.getMessage().startswith("LiteLLM-owned keys")
+    ]
+    assert len(warnings) == 1, warnings
+    assert warnings[0].split("keys=")[-1].split(".")[-1] == "_litellm_probe"
+    additional_fields: Final = wire[0]["additionalModelRequestFields"]
+    assert isinstance(additional_fields, dict)
+    assert additional_fields["_litellm_probe"] == 1

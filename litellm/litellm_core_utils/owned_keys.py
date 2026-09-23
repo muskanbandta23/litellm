@@ -20,7 +20,6 @@ OWNED_KEYS: Final[frozenset[str]] = frozenset(
     )
 )
 OWNED_PREFIX: Final = "_litellm_"
-_NESTED_CONTAINERS: Final = ("metadata", "extra_body")
 
 
 def is_owned_key(key: str) -> bool:
@@ -31,8 +30,8 @@ def owned_keys_in(body: Mapping[str, object]) -> tuple[str, ...]:
     top_level: Final = (key for key in body if isinstance(key, str) and is_owned_key(key))
     nested: Final = (
         f"{container}.{key}"
-        for container in _NESTED_CONTAINERS
-        if isinstance(inner := body.get(container), Mapping)
+        for container, inner in body.items()
+        if isinstance(container, str) and isinstance(inner, Mapping)
         for key in inner
         if isinstance(key, str) and is_owned_key(key)
     )

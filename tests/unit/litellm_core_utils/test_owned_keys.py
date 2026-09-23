@@ -24,11 +24,36 @@ def test_prefixed_key_is_flagged() -> None:
     (
         ("metadata", {"user_api_key_hash": "h"}, ("metadata.user_api_key_hash",)),
         ("extra_body", {"_litellm_probe": 1}, ("extra_body._litellm_probe",)),
-        ("litellm_metadata", {"user_api_key_hash": "h"}, ("litellm_metadata",)),
+        ("litellm_metadata", {"user_api_key_hash": "h"}, ("litellm_metadata", "litellm_metadata.user_api_key_hash")),
+        (
+            "additionalModelRequestFields",
+            {"_litellm_probe": 1},
+            ("additionalModelRequestFields._litellm_probe",),
+        ),
     ),
 )
-def test_nested_containers(container: str, inner: Mapping[str, object], expected: tuple[str, ...]) -> None:
+def test_owned_keys_one_level_under_any_mapping_are_flagged(
+    container: str, inner: Mapping[str, object], expected: tuple[str, ...]
+) -> None:
     assert owned_keys_in({"model": "gpt-5.4", container: inner}) == expected
+
+
+def test_key_two_levels_deep_is_not_flagged() -> None:
+    body: Final = {
+        "model": "gpt-5.4",
+        "additionalModelRequestFields": {"extra_body": {"_litellm_probe": 1}},
+    }
+
+    assert owned_keys_in(body) == ()
+
+
+def test_owned_key_inside_a_list_held_mapping_is_not_flagged() -> None:
+    body: Final = {
+        "model": "gpt-5.4",
+        "messages": [{"_litellm_probe": 1, "user_api_key_hash": "h"}],
+    }
+
+    assert owned_keys_in(body) == ()
 
 
 def test_owned_names_inside_tool_schemas_and_tool_arguments_are_not_flagged() -> None:
@@ -53,6 +78,7 @@ def test_owned_names_inside_tool_schemas_and_tool_arguments_are_not_flagged() ->
                             "rpm": {"type": "integer"},
                             "tpm": {"type": "integer"},
                             "user_api_key_hash": {"type": "string"},
+                            "_litellm_probe": {"type": "string"},
                         },
                     },
                 },
