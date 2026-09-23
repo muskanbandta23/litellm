@@ -2027,6 +2027,15 @@
       "mgmt.key.reset_spend.returns_promptly_with_wedged_coordination_redis",
       "mgmt.auth_cache_invalidation.publish_parked_by_short_redis_wedge_lands_after_recovery",
       "mgmt.auth_cache_invalidation.burst_with_worker_kill_keeps_serving_while_redis_wedged"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_flush_bounds_concurrent_puts_to_the_default_of_sixteen": [
+      "other.observability.s3_v2.flush_bounds_concurrent_puts_to_default_and_keeps_every_log"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_honors_configured_bound_and_env_backed_false_batch_flag": [
+      "other.observability.s3_v2.configured_bound_and_env_backed_false_keeps_per_request_objects"
+    ],
+    "tests/integration/observability/test_s3_v2_upload_fanout.py::test_s3_v2_batch_file_upload_writes_one_jsonl_object_per_flush": [
+      "other.observability.s3_v2.batch_file_upload_writes_one_ndjson_object_per_flush"
     ]
   },
   "browser": {
