@@ -6,6 +6,10 @@ AWS credential resolution is stubbed so nothing reaches STS.
 from __future__ import annotations
 
 import asyncio
+import binascii
+import json
+import struct
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from typing import Final
 from unittest.mock import MagicMock, patch
@@ -16,6 +20,8 @@ import pytest
 from botocore.credentials import Credentials
 from botocore.exceptions import ClientError
 
+import litellm
+from litellm.integrations.custom_logger import CustomLogger
 from litellm.llms.bedrock.chat.converse_handler import BedrockConverseLLM
 from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler, HTTPHandler
 from litellm.rust_bridge import configuration
@@ -273,3 +279,104 @@ def test_session_tags_sign_the_request_and_stay_out_of_the_body(monkeypatch):
     sent = client.post.call_args.kwargs
     assert "Credential=ASIACONVERSETAGGED/" in sent["headers"]["Authorization"]
     assert "aws_session_tags" not in sent["data"]
+
+
+_CONVERSE_MODEL: Final = "bedrock/converse/us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+_MESSAGES: Final[list[dict[str, str]]] = [{"role": "user", "content": "hi"}]
+_PROBE: Final = {"_litellm_probe": 1}
+_AWS_TEST_KWARGS: Final = {"aws_access_key_id": "test", "aws_secret_access_key": "test", "aws_region_name": "us-west-2"}
+
+
+class _PreCallBodyRecorder(CustomLogger):
+    def __init__(self) -> None:
+        super().__init__()
+        self.bodies: list[object] = []
+
+    def log_pre_api_call(self, model: str, messages: object, kwargs: Mapping[str, object]) -> None:
+        additional_args: Final = kwargs["additional_args"]
+        assert isinstance(additional_args, Mapping)
+        self.bodies.append(additional_args["complete_input_dict"])
+
+
+def _recording_transport(wire: list[dict[str, object]], response: httpx.Response) -> httpx.MockTransport:
+    def handle(request: httpx.Request) -> httpx.Response:
+        wire.append(json.loads(request.content))
+        return response
+
+    return httpx.MockTransport(handle)
+
+
+def _converse_event_frame(event_type: str, payload: Mapping[str, object]) -> bytes:
+    def header(name: str, value: str) -> bytes:
+        return bytes([len(name)]) + name.encode() + bytes([7]) + struct.pack(">H", len(value)) + value.encode()
+
+    headers: Final = (
+        header(":event-type", event_type)
+        + header(":content-type", "application/json")
+        + header(":message-type", "event")
+    )
+    body: Final = json.dumps(payload).encode()
+    prelude: Final = struct.pack(">II", 12 + len(headers) + len(body) + 4, len(headers))
+    framed: Final = prelude + struct.pack(">I", binascii.crc32(prelude)) + headers + body
+    return framed + struct.pack(">I", binascii.crc32(framed))
+
+
+_CONVERSE_STREAM: Final = b"".join(
+    (
+        _converse_event_frame("messageStart", {"role": "assistant"}),
+        _converse_event_frame("contentBlockDelta", {"contentBlockIndex": 0, "delta": {"text": "hi"}}),
+        _converse_event_frame("contentBlockStop", {"contentBlockIndex": 0}),
+        _converse_event_frame("messageStop", {"stopReason": "end_turn"}),
+        _converse_event_frame(
+            "metadata", {"usage": {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2}, "metrics": {"latencyMs": 1}}
+        ),
+    )
+)
+
+
+def _assert_pre_call_body_is_the_wire_body(recorder: _PreCallBodyRecorder, wire: list[dict[str, object]]) -> None:
+    assert len(wire) == 1 and len(recorder.bodies) == 1, (wire, recorder.bodies)
+    assert isinstance(recorder.bodies[0], Mapping), type(recorder.bodies[0])
+    assert json.loads(json.dumps(recorder.bodies[0])) == wire[0]
+
+
+def test_converse_sync_pre_call_body_is_the_mapping_sent_on_the_wire(monkeypatch: pytest.MonkeyPatch) -> None:
+    wire: Final[list[dict[str, object]]] = []
+    recorder: Final = _PreCallBodyRecorder()
+    monkeypatch.setattr(litellm, "callbacks", [recorder])
+    client: Final = HTTPHandler(
+        client=httpx.Client(transport=_recording_transport(wire, httpx.Response(200, json=CONVERSE_RESPONSE)))
+    )
+    litellm.completion(model=_CONVERSE_MODEL, messages=_MESSAGES, client=client, extra_body=_PROBE, **_AWS_TEST_KWARGS)
+    _assert_pre_call_body_is_the_wire_body(recorder, wire)
+
+
+@pytest.mark.asyncio
+async def test_converse_async_pre_call_body_is_the_mapping_sent_on_the_wire(monkeypatch: pytest.MonkeyPatch) -> None:
+    wire: Final[list[dict[str, object]]] = []
+    recorder: Final = _PreCallBodyRecorder()
+    monkeypatch.setattr(litellm, "callbacks", [recorder])
+    client: Final = AsyncHTTPHandler(transport=_recording_transport(wire, httpx.Response(200, json=CONVERSE_RESPONSE)))
+    await litellm.acompletion(
+        model=_CONVERSE_MODEL, messages=_MESSAGES, client=client, extra_body=_PROBE, **_AWS_TEST_KWARGS
+    )
+    _assert_pre_call_body_is_the_wire_body(recorder, wire)
+
+
+@pytest.mark.asyncio
+async def test_converse_async_stream_pre_call_body_is_the_mapping_sent_on_the_wire(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    wire: Final[list[dict[str, object]]] = []
+    recorder: Final = _PreCallBodyRecorder()
+    monkeypatch.setattr(litellm, "callbacks", [recorder])
+    stream_response: Final = httpx.Response(
+        200, content=_CONVERSE_STREAM, headers={"content-type": "application/vnd.amazon.eventstream"}
+    )
+    client: Final = AsyncHTTPHandler(transport=_recording_transport(wire, stream_response))
+    stream: Final = await litellm.acompletion(
+        model=_CONVERSE_MODEL, messages=_MESSAGES, stream=True, client=client, extra_body=_PROBE, **_AWS_TEST_KWARGS
+    )
+    chunks: Final = [chunk async for chunk in stream]
+    assert "".join(chunk.choices[0].delta.content or "" for chunk in chunks) == "hi"
+    _assert_pre_call_body_is_the_wire_body(recorder, wire)

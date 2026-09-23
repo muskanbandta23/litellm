@@ -132,7 +132,7 @@ class BedrockConverseLLM(BaseAWSLLM):
             input=messages,
             api_key="",
             additional_args={
-                "complete_input_dict": data,
+                "complete_input_dict": request_data,
                 "api_base": api_base,
                 "headers": dict(prepped.headers),
             },
@@ -207,7 +207,7 @@ class BedrockConverseLLM(BaseAWSLLM):
                 input=messages,
                 api_key="",
                 additional_args={
-                    "complete_input_dict": data,
+                    "complete_input_dict": request_data,
                     "api_base": api_base,
                     "headers": prepped.headers,
                 },
@@ -426,7 +426,7 @@ class BedrockConverseLLM(BaseAWSLLM):
             input=messages,
             api_key="",
             additional_args={
-                "complete_input_dict": data,
+                "complete_input_dict": _data,
                 "api_base": proxy_endpoint_url,
                 "headers": prepped.headers,
             },
