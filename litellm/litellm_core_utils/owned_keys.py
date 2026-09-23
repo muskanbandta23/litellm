@@ -26,11 +26,19 @@ def is_owned_key(key: str) -> bool:
     return key in OWNED_KEYS or key.startswith(OWNED_PREFIX)
 
 
+def request_body_view(body: Mapping[str, object]) -> Mapping[str, object]:
+    extra: Final = body.get("extra_body")
+    if not isinstance(extra, Mapping):
+        return body
+    return {**{key: value for key, value in body.items() if key != "extra_body"}, **extra}
+
+
 def owned_keys_in(body: Mapping[str, object]) -> tuple[str, ...]:
-    top_level: Final = (key for key in body if isinstance(key, str) and is_owned_key(key))
+    view: Final = request_body_view(body)
+    top_level: Final = (key for key in view if isinstance(key, str) and is_owned_key(key))
     nested: Final = (
         f"{container}.{key}"
-        for container, inner in body.items()
+        for container, inner in view.items()
         if isinstance(container, str) and isinstance(inner, Mapping)
         for key in inner
         if isinstance(key, str) and is_owned_key(key)

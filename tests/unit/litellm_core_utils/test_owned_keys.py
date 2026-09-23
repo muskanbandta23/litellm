@@ -4,7 +4,7 @@ from typing import Final
 
 import pytest
 
-from litellm.litellm_core_utils.owned_keys import owned_keys_in
+from litellm.litellm_core_utils.owned_keys import owned_keys_in, request_body_view
 
 
 def test_top_level_owned_key_is_flagged() -> None:
@@ -22,7 +22,7 @@ def test_prefixed_key_is_flagged(key: str) -> None:
     ("container", "inner", "expected"),
     (
         ("metadata", {"user_api_key_hash": "h"}, ("metadata.user_api_key_hash",)),
-        ("extra_body", {"_litellm_probe": 1}, ("extra_body._litellm_probe",)),
+        ("extra_body", {"_litellm_probe": 1}, ("_litellm_probe",)),
         ("litellm_metadata", {"user_api_key_hash": "h"}, ("litellm_metadata", "litellm_metadata.user_api_key_hash")),
         (
             "additionalModelRequestFields",
@@ -35,6 +35,35 @@ def test_owned_keys_one_level_under_any_mapping_are_flagged(
     container: str, inner: Mapping[str, object], expected: tuple[str, ...]
 ) -> None:
     assert owned_keys_in({"model": "gpt-5.4", container: inner}) == expected
+
+
+def test_extra_body_is_flattened_before_walk() -> None:
+    body: Final = {"model": "gpt-5.4", "extra_body": {"metadata": {"user_api_key_hash": "h"}}}
+
+    assert owned_keys_in(body) == ("metadata.user_api_key_hash",)
+
+
+@pytest.mark.parametrize("extra_body", ("user_api_key_hash", ["user_api_key_hash"], [{"user_api_key_hash": "h"}], None))
+def test_non_mapping_extra_body_is_left_alone(extra_body: object) -> None:
+    body: Final = {"model": "gpt-5.4", "extra_body": extra_body}
+
+    assert request_body_view(body) is body
+    assert owned_keys_in(body) == ()
+
+
+def test_extra_body_flatten_reports_every_owned_key_once() -> None:
+    body: Final = {
+        "model": "gpt-5.4",
+        "model_info": {},
+        "extra_body": {"_litellm_probe": 1, "metadata": {"user_api_key_hash": "h", "litellm_call_id": "c"}},
+    }
+
+    assert owned_keys_in(body) == (
+        "_litellm_probe",
+        "metadata.litellm_call_id",
+        "metadata.user_api_key_hash",
+        "model_info",
+    )
 
 
 def test_key_two_levels_deep_is_not_flagged() -> None:
@@ -115,14 +144,16 @@ def test_every_owned_key_is_flagged_at_top_level(key: str) -> None:
     assert owned_keys_in({"model": "gpt-5.4", key: 1}) == (key,)
 
 
-@pytest.mark.parametrize("key", ("user", "stream_chunk_size", "litellm_probe", "_litellmx", "_litellm"))
+@pytest.mark.parametrize(
+    "key", ("user", "stream_chunk_size", "litellm_probe", "_litellmx", "_litellm", "x_litellm_y", "x_litellm_")
+)
 def test_non_owned_and_prefix_boundary_keys_are_not_flagged(key: str) -> None:
     assert owned_keys_in({"model": "gpt-5.4", key: 1}) == ()
 
 
 def test_result_is_sorted_regardless_of_insertion_order() -> None:
     expected: Final = (
-        "extra_body._litellm_probe",
+        "_litellm_probe",
         "metadata.litellm_call_id",
         "metadata.user_api_key_hash",
         "model_info",
